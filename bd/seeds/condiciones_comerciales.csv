@@ -1,0 +1,4 @@
+id,tipo_cliente,compra_minima,descuento_porcentaje,medio_pago,plazo_pago,observaciones
+1,Retailer,200,5,Credit Card / ACH,Immediate,Minimum order $200
+2,Wholesaler,600,15,ACH / Check,Net 30,Requires business license
+3,Distributor,2000,25,ACH / Wire Transfer,Net 60,Prior agreement with sales team required

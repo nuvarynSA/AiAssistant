@@ -1,0 +1,11 @@
+id,nombre,categoria,descripcion,precio_unitario,precio_mayorista,stock,unidad
+1,Trail Mix x 1lb,Snacks,Premium mixed nuts and dried fruit ideal for convenience stores,4.99,3.99,250,bag
+2,Kettle Chips x 1oz,Snacks,Individual kettle-cooked chips high-turnover snack,1.49,1.19,500,unit
+3,Granola Bars x 12pk,Cereals,Variety pack granola bars popular at grocery checkout,5.49,4.39,180,box
+4,Peanut Butter Crackers x 1oz,Snacks,Single-serve peanut butter cracker pack for convenience stores,1.29,1.03,450,unit
+5,Sparkling Water x 16.9oz,Beverages,Unsweetened sparkling water ideal for stores and kiosks,1.29,1.03,400,bottle
+6,Orange Juice x 52oz,Beverages,100% orange juice variety of flavors,3.99,3.19,150,bottle
+7,Whole Milk x 1gal,Dairy,Whole milk gallon standard retail size,4.29,3.43,200,jug
+8,Greek Yogurt x 5.3oz,Dairy,Creamy Greek yogurt with fruit high-margin product,1.99,1.59,280,cup
+9,Pretzels x 16oz,Snacks,Salted pretzel twists snack format,3.49,2.79,380,bag
+10,Assorted Cookies x 13oz,Cereals,Variety cookie pack for resale,3.99,3.19,290,pack

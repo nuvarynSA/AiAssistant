@@ -1,0 +1,63 @@
+generator client {
+  provider        = "prisma-client-js"
+  previewFeatures = ["postgresqlExtensions"]
+}
+
+datasource db {
+  provider   = "postgresql"
+  url        = env("DATABASE_URL")
+  extensions = [pgvector(map: "vector")]
+}
+
+model Product {
+  id               Int     @id @default(autoincrement())
+  nombre           String
+  categoria        String
+  descripcion      String
+  precio_unitario  Float
+  precio_mayorista Float
+  stock            Int
+  unidad           String
+  activo           Boolean @default(true)
+  embedding        Unsupported("vector(1536)")?
+
+  @@map("products")
+}
+
+model Condicion {
+  id                   Int     @id @default(autoincrement())
+  tipo_cliente         String
+  compra_minima        Float
+  descuento_porcentaje Float
+  medio_pago           String
+  plazo_pago           String
+  observaciones        String?
+  embedding            Unsupported("vector(1536)")?
+
+  @@map("condiciones_comerciales")
+}
+
+model Lead {
+  id               Int        @id @default(autoincrement())
+  nombre           String
+  email            String?
+  telefono         String
+  empresa          String?
+  tipo_cliente     String?
+  rubro            String?
+  ciudad           String?
+  interes_producto String?
+  estado_lead      LeadStatus @default(New)
+  fecha_contacto   DateTime   @default(now())
+  resumen_ia       String?
+
+  @@map("leads")
+}
+
+enum LeadStatus {
+  New
+  Contacted
+  Interested
+  Closed
+  Lost
+}

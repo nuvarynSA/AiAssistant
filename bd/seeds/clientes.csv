@@ -1,0 +1,11 @@
+id,nombre,email,telefono,empresa,tipo_cliente,rubro,ciudad,interes_producto,estado_lead
+1,James Carter,james@cornermart.com,212-555-0101,Corner Mart LLC,Retailer,Convenience Store,New York,Trail mix and snack bars,Interested
+2,Sarah Mitchell,sarah@sunshinegrocer.com,323-555-0202,Sunshine Grocery,Retailer,Grocery Store,Los Angeles,Single-serve snacks and beverages,New
+3,Michael Torres,michael@northdist.com,312-555-0303,North Distribution Co,Wholesaler,Distribution,Chicago,Bulk cereals and snacks,Contacted
+4,Emily Johnson,emily@familymarket.com,602-555-0404,Family Market Inc,Wholesaler,Supermarket,Phoenix,Dairy and cereal mix,Interested
+5,Robert Davis,robert@quickstop.com,713-555-0505,Quick Stop Stores,Retailer,Convenience Store,Houston,Beverages and snacks,Closed
+6,Jennifer Wilson,jennifer@southdist.com,832-555-0606,Southern Distribution,Distributor,Distribution,Houston,Bulk products,New
+7,Daniel Martinez,daniel@centralmarket.com,212-555-0707,Central Market Group,Wholesaler,Supermarket,New York,Dairy and cereal,New
+8,Amanda Brown,amanda@maxconvenience.com,312-555-0808,Max Convenience,Retailer,Convenience Store,Chicago,Individual snack format,Interested
+9,Christopher Lee,chris@valuecorner.com,602-555-0909,Value Corner Store,Retailer,Convenience Store,Phoenix,Budget-friendly products,Contacted
+10,Jessica Taylor,jessica@nationalfood.com,713-555-1010,National Food Dist,Distributor,Distribution,Houston,Full catalog,New
