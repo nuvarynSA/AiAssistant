@@ -1,8 +1,10 @@
 # AI Sales Assistant
 
-**Full-stack TypeScript web app that automates B2B commercial attention with AI: it answers product and pricing questions, recommends items through semantic search, resolves commercial conditions and captures qualified leads — all from a single streaming chat. Built as a modular monolith on Next.js 14, where the same app serves both the interface and the server, with no separate Express or NestJS backend.**
+**🇬🇧 English** · [🇪🇸 Español](#-español)
 
-> Resumen en español: Asistente comercial B2B con IA. Responde consultas, recomienda productos con búsqueda semántica (RAG), consulta condiciones comerciales y registra leads con un resumen comercial generado por IA. Es un monolito modular en Next.js 14 (frontend, backend, base de datos y documentación en una sola app, sin microservicios), desplegable en Railway con Docker.
+---
+
+**Full-stack TypeScript web app that automates B2B commercial attention with AI: it answers product and pricing questions, recommends items through semantic search, resolves commercial conditions and captures qualified leads — all from a single streaming chat. Built as a modular monolith on Next.js 14, where the same app serves both the interface and the server, with no separate Express or NestJS backend.**
 
 ---
 
@@ -222,3 +224,237 @@ Most B2B companies lose leads because response time is too slow. This assistant 
 TypeScript, Next.js 14, React 18, Vercel AI SDK, OpenAI, GPT-4o-mini, tool calling, RAG, retrieval augmented generation, embeddings, pgvector, semantic search, PostgreSQL, Prisma, Zod, Zustand, Tailwind CSS, shadcn/ui, Server Actions, Route Handlers, Google Sheets API, B2B sales automation, AI sales assistant, lead capture, modular monolith, Railway, Docker.
 
 **Suggested GitHub topics:** `typescript` `nextjs` `react` `vercel-ai-sdk` `openai` `rag` `pgvector` `prisma` `postgresql` `zustand` `tailwindcss` `shadcn-ui` `b2b` `sales-automation` `ai-assistant` `railway` `docker`
+
+<br>
+
+---
+---
+
+<br>
+
+# 🇪🇸 Español
+
+[🇬🇧 English](#ai-sales-assistant) · **🇪🇸 Español**
+
+---
+
+**Aplicación web full-stack en TypeScript que automatiza la atención comercial B2B con IA: responde consultas de productos y precios, recomienda ítems mediante búsqueda semántica, resuelve condiciones comerciales y captura leads calificados — todo desde un único chat con streaming. Construida como un monolito modular sobre Next.js 14, donde la misma app sirve tanto la interfaz como el servidor, sin un backend independiente en Express o NestJS.**
+
+---
+
+## Demo
+
+<table>
+  <tr>
+    <td align="center"><b>Chat — IA con streaming + Tool Calling</b></td>
+    <td align="center"><b>Catálogo — Explorador de productos</b></td>
+    <td align="center"><b>Leads — Pipeline + exportación a Sheets</b></td>
+  </tr>
+  <tr>
+    <td><img src="docs/screenshots/chat.png" alt="Vista de chat" width="320"/></td>
+    <td><img src="docs/screenshots/catalog.png" alt="Vista de catálogo" width="320"/></td>
+    <td><img src="docs/screenshots/leads.png" alt="Vista de leads" width="320"/></td>
+  </tr>
+</table>
+
+---
+
+## Funcionalidades clave
+
+- **Chat con IA:** conversación con streaming token a token y tool calling autónomo de varios pasos.
+- **Búsqueda semántica de productos (RAG):** embeddings de OpenAI + similitud coseno con pgvector sobre el catálogo.
+- **Condiciones comerciales:** compra mínima, descuentos, medio y plazo de pago resueltos según el tipo de cliente.
+- **Captura de leads enriquecida con IA:** el modelo detecta la intención de compra, genera un resumen comercial y persiste el lead.
+- **Catálogo de productos:** fetch del lado del servidor con filtrado del lado del cliente y una grilla de tarjetas responsive.
+- **Pipeline de leads:** gestión de estados y exportación a Google Sheets en un clic (sin CRM).
+- **Monolito modular:** una sola app Next.js con separación lógica entre `frontend/`, `backend/` y `bd/`.
+
+El asistente expone tres herramientas y el modelo decide cuándo invocar cada una, encadenando llamadas dentro de una misma conversación:
+
+- **`searchProducts`** — búsqueda semántica de productos.
+- **`getConditions`** — consulta de condiciones comerciales.
+- **`createLead`** — registra un interesado y genera un resumen comercial mediante IA.
+
+---
+
+## Aspectos técnicos destacados
+
+### 1 · Chat con streaming y tool calling de varios pasos
+
+Todo el backend de IA es un único Route Handler. Tres herramientas quedan vinculadas al modelo — este decide de forma autónoma cuándo invocarlas y encadena llamadas sin código de orquestación adicional.
+
+```ts
+// app/src/app/api/chat/route.ts
+export async function POST(req: Request) {
+  const { messages } = await req.json()
+
+  const result = streamText({
+    model: openai('gpt-4o-mini'),
+    system: SYSTEM_PROMPT,
+    messages,
+    tools: { searchProducts, getConditions, createLead },
+    maxSteps: 5,                      // el modelo encadena llamadas de forma autónoma
+  })
+
+  return result.toDataStreamResponse() // stream token a token hacia el cliente
+}
+```
+
+### 2 · Búsqueda semántica de productos con pgvector
+
+Sin base de datos vectorial externa. La similitud coseno corre directamente sobre la misma instancia de PostgreSQL mediante el operador `<=>` de pgvector.
+
+```ts
+// app/src/backend/ai/rag.ts
+export async function searchByEmbedding(query: string, limit = 5) {
+  const { embedding } = await embed({
+    model: openai.embedding('text-embedding-3-small'),
+    value: query,
+  })
+
+  return prisma.$queryRawUnsafe<ProductResult[]>(
+    `SELECT id, nombre, categoria, descripcion,
+            precio_unitario, precio_mayorista, stock,
+            1 - (embedding <=> $1::vector) AS similarity
+     FROM products
+     WHERE activo = true AND embedding IS NOT NULL
+     ORDER BY embedding <=> $1::vector
+     LIMIT $2`,
+    `[${embedding.join(',')}]`,
+    limit
+  )
+}
+```
+
+### 3 · Captura de leads enriquecida con IA vía tool calling
+
+Cuando el modelo detecta intención de compra invoca `createLead`. Antes de persistir el registro genera un resumen comercial con IA — de modo que todo lead que entra al pipeline llega precalificado.
+
+```ts
+// app/src/backend/ai/tools.ts
+export const createLead = tool({
+  description: 'Register a lead when the user shows purchase intent.',
+  parameters: z.object({
+    nombre: z.string(),
+    telefono: z.string(),
+    empresa: z.string().optional(),
+    tipo_cliente: z.enum(['Retailer', 'Wholesaler', 'Distributor']).optional(),
+    interes_producto: z.string().optional(),
+    ciudad: z.string().optional(),
+  }),
+  execute: async (data) => {
+    // la IA genera un resumen comercial antes de guardar el registro
+    const { text: resumen_ia } = await generateText({
+      model: openai('gpt-4o-mini'),
+      prompt: `Write a 1-2 sentence commercial summary for this lead:\n${JSON.stringify(data)}`,
+    })
+
+    const lead = await prisma.lead.create({
+      data: { ...data, estado_lead: 'New', resumen_ia },
+    })
+
+    return { leadId: lead.id, message: `Lead registered. Sales team will contact ${data.nombre} shortly.` }
+  },
+})
+```
+
+---
+
+## Arquitectura
+
+Monolito modular — una sola app Next.js 14 sirve la UI y el servidor. Capas lógicas, no microservicios.
+
+```
+Frontend — React / Next.js
+  Chat (IA) · Catálogo · Gestión de leads
+        │
+        ▼
+Backend — Next.js
+  Route Handlers · Server Actions · Lógica comercial
+        │
+   ┌────┴──────────────┬──────────────────┐
+   │                   │                   │
+ Capa de IA         Capa de datos      Integración
+ Vercel AI SDK      Prisma ORM         Google Sheets API
+   │                   │
+   ▼                   ▼
+ OpenAI GPT-4o-mini  PostgreSQL + pgvector
+ + text-embedding    Productos · Condiciones comerciales
+   -3-small          Leads · Embeddings
+```
+
+---
+
+## Estructura del proyecto
+
+```
+PrAiSalesAssistant/
+├── app/        # App Next.js 14 (App Router): src/frontend, src/backend, src/app (rutas)
+├── bd/         # Schema de Prisma, seeds y CSVs (clientes, productos, condiciones_comerciales)
+├── descr/      # Specs funcionales y técnicas — fuente de verdad (Spec Driven Development)
+├── docs/       # Capturas de pantalla y material de apoyo
+└── sessions/   # Resúmenes de sesión
+```
+
+---
+
+## Stack tecnológico
+
+| Capa | Tecnología |
+|---|---|
+| Framework | Next.js 14 · App Router |
+| Lenguaje | TypeScript |
+| Frontend | React 18 |
+| Estilos | Tailwind CSS · shadcn/ui |
+| Estado | Zustand |
+| Backend | Next.js Route Handlers · Server Actions |
+| IA | Vercel AI SDK · OpenAI GPT-4o-mini |
+| RAG | OpenAI Embeddings · pgvector |
+| Base de datos | PostgreSQL |
+| ORM | Prisma 5 |
+| Validaciones | Zod |
+| Integraciones | Google Sheets API |
+| Infraestructura | Railway · Docker |
+
+---
+
+## Puesta en marcha
+
+```bash
+git clone https://github.com/nuvarynSA/AiAssistant.git
+cd AiAssistant/app
+npm install
+
+# configurar entorno (API key de OpenAI, URL de PostgreSQL, credenciales de Google Sheets)
+cp .env.example .env.local   # si existe; si no, crear .env.local
+
+npx prisma migrate dev       # aplicar el schema
+npm run seed                 # cargar CSVs desde bd/seeds
+npm run dev                  # http://localhost:3000
+```
+
+| Script | Acción |
+|---|---|
+| `npm run dev` | servidor de desarrollo |
+| `npm run build` | build de producción |
+| `npm start` | servir el build de producción |
+| `npm run lint` | linter |
+| `npm run seed` | poblar la base de datos desde los CSVs |
+
+> Requiere una instancia de PostgreSQL con la extensión `pgvector`, una API key de OpenAI y credenciales de la API de Google Sheets para exportar leads. Se incluye `docker-compose.yml` para levantar PostgreSQL + pgvector localmente.
+
+---
+
+## Qué problema resuelve
+
+La mayoría de las empresas B2B pierden leads porque el tiempo de respuesta es demasiado lento. Este asistente responde al instante, califica la intención a través de la conversación y entrega un lead tibio — enriquecido con IA — antes de que un vendedor intervenga. Primer contacto: totalmente automatizado.
+
+> Alcance MVP: Chat · Catálogo · Leads. Sin autenticación. Listo para desplegar en Railway.
+
+---
+
+## Palabras clave
+
+TypeScript, Next.js 14, React 18, Vercel AI SDK, OpenAI, GPT-4o-mini, tool calling, RAG, generación aumentada por recuperación, embeddings, pgvector, búsqueda semántica, PostgreSQL, Prisma, Zod, Zustand, Tailwind CSS, shadcn/ui, Server Actions, Route Handlers, Google Sheets API, automatización de ventas B2B, asistente comercial IA, captura de leads, monolito modular, Railway, Docker.
+
+**Topics sugeridos para GitHub:** `typescript` `nextjs` `react` `vercel-ai-sdk` `openai` `rag` `pgvector` `prisma` `postgresql` `zustand` `tailwindcss` `shadcn-ui` `b2b` `sales-automation` `ai-assistant` `railway` `docker`
